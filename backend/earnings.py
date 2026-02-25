@@ -31,36 +31,24 @@ def _load_prefetch():
 
 
 def prefetch_earnings(symbols):
-    """Pre-fetch earnings dates for a list of symbols using get_earnings_dates.
+    """Pre-fetch COMPLETE earnings data (dates + prices + computed metrics) for a list of symbols.
 
-    Run this locally (where Yahoo HTML scraping works) to build the cache file.
+    Run this locally (where Yahoo works fully) to build the cache file.
     The cache file gets committed to the repo and deployed to Render.
+    On Render, the API just serves this JSON directly — zero Yahoo calls needed.
     """
     cache = _load_prefetch()
     for sym in symbols:
         sym = sym.upper()
         print(f"[prefetch] {sym}...", end=" ", flush=True)
         try:
-            ticker = yf.Ticker(sym)
-            ed = ticker.get_earnings_dates(limit=16)
-            if ed is None or ed.empty:
-                print("no data")
+            result = fetch_earnings_data(sym)
+            if result.get("error"):
+                print(f"skip: {result['error']}")
                 continue
-            entries = []
-            for date_idx, row in ed.iterrows():
-                d = date_idx.tz_localize(None) if date_idx.tzinfo else date_idx
-                if d > datetime.now():
-                    continue
-                entries.append({
-                    "date": d.strftime("%Y-%m-%d"),
-                    "eps_estimate": _safe_float(row.get("EPS Estimate")),
-                    "eps_actual": _safe_float(row.get("Reported EPS")),
-                })
-            if entries:
-                cache[sym] = entries
-                print(f"{len(entries)} events")
-            else:
-                print("no past events")
+            # Store the full computed result — ready to serve as-is
+            cache[sym] = result
+            print(f"{result['events']} events, moon={result['moon_pct']}%")
         except Exception as e:
             print(f"error: {e}")
 
@@ -147,6 +135,14 @@ def fetch_earnings_data(symbol):
     Returns a dict with all metrics, history events, and commentary.
     On failure returns {"error": "message"}.
     """
+    # Check prefetch for full pre-computed result first
+    prefetch = _load_prefetch()
+    if symbol.upper() in prefetch:
+        cached = prefetch[symbol.upper()]
+        # If it's a full result (has 'moon_pct'), serve it directly
+        if "moon_pct" in cached:
+            return cached
+
     try:
         ticker = yf.Ticker(symbol.upper())
 
