@@ -1,10 +1,44 @@
 import { useState, useEffect, useCallback } from 'react'
 import TimeframeSelector from './components/TimeframeSelector'
+import TickerTape from './components/TickerTape'
 import TickerTable from './components/TickerTable'
 import EarningsOracle from './components/EarningsOracle'
 import OptionsFlow from './components/OptionsFlow'
 
 const REFRESH_INTERVAL = 5 * 60 * 1000
+
+const WSB_WISDOM = [
+  "positions or ban",
+  "buy high, sell low — this is the way",
+  "it literally can't go tits up",
+  "sir, this is a Wendy's",
+  "stonks only go up",
+  "GUH",
+  "my wife's boyfriend said this is a good app",
+  "this is not financial advice. we eat crayons here",
+  "apes together strong",
+  "diamond hands or no hands",
+  "ban if no screenshots",
+  "bears r fuk",
+  "the market can stay irrational longer than you can stay solvent",
+  "priced in",
+  "the real DD was the friends we made along the way",
+  "if Cramer says buy, you sell",
+  "I'm not a financial advisor, I can barely read",
+  "HODL until you can't feel feelings anymore",
+  "loss porn is the real content",
+  "somebody call an adult",
+  "I put my life savings into this and I can't even read a balance sheet",
+  "this is a casino and the house always wins",
+  "imagine doing research before buying options",
+  "the stock market is just astrology for men",
+  "I asked my cat and she said buy calls",
+  "Wendy's dumpster shifts are back on the menu",
+  "positions: 100% portfolio in one ticker, expiring Friday",
+  "the only hedge I know is the one in my front yard",
+  "not a bear market if you don't look at your portfolio",
+  "I'm financially ruined but at least I have Reddit karma",
+]
 
 export default function App() {
   const [hours, setHours] = useState(24)
@@ -14,6 +48,14 @@ export default function App() {
   const [scraping, setScraping] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [selectedTicker, setSelectedTicker] = useState(null)
+  const [wisdomIdx, setWisdomIdx] = useState(() => Math.floor(Math.random() * WSB_WISDOM.length))
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWisdomIdx(prev => (prev + 1) % WSB_WISDOM.length)
+    }, 8000)
+    return () => clearInterval(timer)
+  }, [])
 
   const fetchTickers = useCallback(async () => {
     try {
@@ -57,6 +99,8 @@ export default function App() {
 
   return (
     <>
+      <TickerTape tickers={tickers} />
+
       <div className="header">
         <span className="header-icon">🦍</span>
         <h1>WSB <span className="gold">Sentiment</span> Tracker</h1>
@@ -146,9 +190,10 @@ export default function App() {
       <OptionsFlow hours={hours} />
 
       <div className="footer">
-        positions or ban &bull; this is a casino &bull; sir this is a wendy's
-        <br />
-        auto-refreshes every 5 min &bull; your wife's boyfriend approves this app
+        <div className="wisdom" key={wisdomIdx}>{WSB_WISDOM[wisdomIdx]}</div>
+        <div className="footer-sub">
+          auto-refreshes every 5 min &bull; data from r/wallstreetbets &bull; not financial advice
+        </div>
       </div>
     </>
   )
