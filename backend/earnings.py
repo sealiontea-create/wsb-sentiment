@@ -7,7 +7,84 @@ Entertainment only — not financial advice.
 
 import statistics
 import yfinance as yf
+import pandas as pd
 from datetime import datetime, timedelta
+
+
+def _get_earnings_dates_robust(ticker, symbol):
+    """Try multiple strategies to get earnings dates from yfinance.
+
+    Returns a list of dicts with 'date', 'eps_estimate', 'eps_actual' keys,
+    or an empty list on failure.
+    """
+    results = []
+
+    # Strategy 1: get_earnings_dates (scrapes HTML — works locally, often blocked on cloud)
+    try:
+        ed = ticker.get_earnings_dates(limit=16)
+        if ed is not None and not ed.empty:
+            for date_idx, row in ed.iterrows():
+                d = date_idx.tz_localize(None) if date_idx.tzinfo else date_idx
+                if d > datetime.now():
+                    continue
+                results.append({
+                    "date": d,
+                    "eps_estimate": _safe_float(row.get("EPS Estimate")),
+                    "eps_actual": _safe_float(row.get("Reported EPS")),
+                })
+            if results:
+                return results
+    except Exception:
+        pass
+
+    # Strategy 2: quarterly_income_stmt column dates (API-based, works from servers)
+    try:
+        stmt = ticker.quarterly_income_stmt
+        if stmt is not None and not stmt.empty:
+            for col_date in stmt.columns:
+                d = pd.Timestamp(col_date)
+                d = d.tz_localize(None) if d.tzinfo else d
+                d = d.to_pydatetime()
+                if d > datetime.now():
+                    continue
+                # Try to get EPS from the statement
+                eps_actual = None
+                for row_name in ["Basic EPS", "Diluted EPS"]:
+                    if row_name in stmt.index:
+                        eps_actual = _safe_float(stmt.loc[row_name, col_date])
+                        if eps_actual is not None:
+                            break
+                results.append({
+                    "date": d,
+                    "eps_estimate": None,
+                    "eps_actual": eps_actual,
+                })
+            if results:
+                return results
+    except Exception:
+        pass
+
+    # Strategy 3: earnings_history from fast_info or earnings attribute
+    try:
+        eh = ticker.earnings_history
+        if eh is not None and not eh.empty:
+            for date_idx, row in eh.iterrows():
+                d = pd.Timestamp(date_idx)
+                d = d.tz_localize(None) if d.tzinfo else d
+                d = d.to_pydatetime()
+                if d > datetime.now():
+                    continue
+                results.append({
+                    "date": d,
+                    "eps_estimate": _safe_float(row.get("epsEstimate")),
+                    "eps_actual": _safe_float(row.get("epsActual")),
+                })
+            if results:
+                return results
+    except Exception:
+        pass
+
+    return results
 
 
 def fetch_earnings_data(symbol):
@@ -19,35 +96,26 @@ def fetch_earnings_data(symbol):
     try:
         ticker = yf.Ticker(symbol.upper())
 
-        # Get ~4 years of earnings dates
-        try:
-            earnings_dates = ticker.get_earnings_dates(limit=16)
-        except Exception:
-            return {"error": f"No earnings data available for {symbol.upper()}"}
-
-        if earnings_dates is None or earnings_dates.empty:
+        # Get earnings dates via multi-strategy approach
+        earnings_list = _get_earnings_dates_robust(ticker, symbol)
+        if not earnings_list:
             return {"error": f"No earnings data available for {symbol.upper()}"}
 
         # Get 5 years of daily price data
         try:
             hist = ticker.history(period="5y")
-        except Exception:
-            return {"error": f"Could not fetch price history for {symbol.upper()}"}
+        except Exception as e:
+            return {"error": f"Could not fetch price history for {symbol.upper()}: {e}"}
 
         if hist is None or hist.empty:
             return {"error": f"No price history available for {symbol.upper()}"}
 
         # Process each earnings event
         events = []
-        for date_idx, row in earnings_dates.iterrows():
-            earn_date = date_idx.tz_localize(None) if date_idx.tzinfo else date_idx
-
-            # Skip future earnings
-            if earn_date > datetime.now():
-                continue
-
-            eps_estimate = _safe_float(row.get("EPS Estimate"))
-            eps_actual = _safe_float(row.get("Reported EPS"))
+        for earn in earnings_list:
+            earn_date = earn["date"]
+            eps_estimate = earn["eps_estimate"]
+            eps_actual = earn["eps_actual"]
 
             # Calculate EPS surprise
             surprise_pct = None
