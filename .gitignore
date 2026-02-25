@@ -4,4 +4,5 @@ dist/
 __pycache__/
 *.pyc
 backend/data/
+!backend/data/earnings_prefetch.json
 .vite/

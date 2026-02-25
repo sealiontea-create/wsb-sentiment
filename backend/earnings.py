@@ -6,18 +6,93 @@ Entertainment only — not financial advice.
 """
 
 import statistics
+import json
+import os
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
+
+# Pre-fetched earnings dates cache (built locally, committed to repo)
+_PREFETCH_PATH = os.path.join(os.path.dirname(__file__), "data", "earnings_prefetch.json")
+_prefetch_cache = None
+
+
+def _load_prefetch():
+    """Load pre-fetched earnings dates from JSON file."""
+    global _prefetch_cache
+    if _prefetch_cache is not None:
+        return _prefetch_cache
+    if os.path.exists(_PREFETCH_PATH):
+        with open(_PREFETCH_PATH, "r") as f:
+            _prefetch_cache = json.load(f)
+    else:
+        _prefetch_cache = {}
+    return _prefetch_cache
+
+
+def prefetch_earnings(symbols):
+    """Pre-fetch earnings dates for a list of symbols using get_earnings_dates.
+
+    Run this locally (where Yahoo HTML scraping works) to build the cache file.
+    The cache file gets committed to the repo and deployed to Render.
+    """
+    cache = _load_prefetch()
+    for sym in symbols:
+        sym = sym.upper()
+        print(f"[prefetch] {sym}...", end=" ", flush=True)
+        try:
+            ticker = yf.Ticker(sym)
+            ed = ticker.get_earnings_dates(limit=16)
+            if ed is None or ed.empty:
+                print("no data")
+                continue
+            entries = []
+            for date_idx, row in ed.iterrows():
+                d = date_idx.tz_localize(None) if date_idx.tzinfo else date_idx
+                if d > datetime.now():
+                    continue
+                entries.append({
+                    "date": d.strftime("%Y-%m-%d"),
+                    "eps_estimate": _safe_float(row.get("EPS Estimate")),
+                    "eps_actual": _safe_float(row.get("Reported EPS")),
+                })
+            if entries:
+                cache[sym] = entries
+                print(f"{len(entries)} events")
+            else:
+                print("no past events")
+        except Exception as e:
+            print(f"error: {e}")
+
+    os.makedirs(os.path.dirname(_PREFETCH_PATH), exist_ok=True)
+    with open(_PREFETCH_PATH, "w") as f:
+        json.dump(cache, f, indent=2)
+    print(f"\n[prefetch] Saved {len(cache)} tickers to {_PREFETCH_PATH}")
+    return cache
 
 
 def _get_earnings_dates_robust(ticker, symbol):
     """Try multiple strategies to get earnings dates from yfinance.
 
-    Returns a list of dicts with 'date', 'eps_estimate', 'eps_actual' keys,
+    Returns a list of dicts with 'date' (datetime), 'eps_estimate', 'eps_actual' keys,
     or an empty list on failure.
     """
     results = []
+
+    # Strategy 0: Pre-fetched cache (built locally, works everywhere)
+    prefetch = _load_prefetch()
+    if symbol.upper() in prefetch:
+        for entry in prefetch[symbol.upper()]:
+            d = datetime.strptime(entry["date"], "%Y-%m-%d")
+            if d > datetime.now():
+                continue
+            results.append({
+                "date": d,
+                "eps_estimate": entry.get("eps_estimate"),
+                "eps_actual": entry.get("eps_actual"),
+            })
+        if results:
+            return results
 
     # Strategy 1: get_earnings_dates (scrapes HTML — works locally, often blocked on cloud)
     try:
@@ -47,7 +122,6 @@ def _get_earnings_dates_robust(ticker, symbol):
                 d = d.to_pydatetime()
                 if d > datetime.now():
                     continue
-                # Try to get EPS from the statement
                 eps_actual = None
                 for row_name in ["Basic EPS", "Diluted EPS"]:
                     if row_name in stmt.index:
@@ -58,26 +132,6 @@ def _get_earnings_dates_robust(ticker, symbol):
                     "date": d,
                     "eps_estimate": None,
                     "eps_actual": eps_actual,
-                })
-            if results:
-                return results
-    except Exception:
-        pass
-
-    # Strategy 3: earnings_history from fast_info or earnings attribute
-    try:
-        eh = ticker.earnings_history
-        if eh is not None and not eh.empty:
-            for date_idx, row in eh.iterrows():
-                d = pd.Timestamp(date_idx)
-                d = d.tz_localize(None) if d.tzinfo else d
-                d = d.to_pydatetime()
-                if d > datetime.now():
-                    continue
-                results.append({
-                    "date": d,
-                    "eps_estimate": _safe_float(row.get("epsEstimate")),
-                    "eps_actual": _safe_float(row.get("epsActual")),
                 })
             if results:
                 return results
