@@ -36,7 +36,7 @@ const COLUMNS = [
   { key: 'top_upvotes', label: 'Top Post', sortable: true, tip: 'Upvotes on the most viral post — high number = someone\'s loss porn went big' },
 ]
 
-export default function TickerTable({ tickers }) {
+export default function TickerTable({ tickers, selectedTicker, onTickerClick }) {
   const [sortKey, setSortKey] = useState('mention_count')
   const [sortDesc, setSortDesc] = useState(true)
 
@@ -81,7 +81,12 @@ export default function TickerTable({ tickers }) {
           const cls = sentimentClass(t.avg_sentiment)
           const barWidth = Math.min(Math.abs(t.avg_sentiment) * 50, 50)
           return (
-            <tr key={t.ticker}>
+            <tr
+              key={t.ticker}
+              className={selectedTicker === t.ticker ? 'ticker-selected' : ''}
+              onClick={() => onTickerClick?.(t.ticker)}
+              style={{ cursor: 'pointer' }}
+            >
               <td className="rank-cell">{i + 1}</td>
               <td>
                 <div className="ticker-cell">

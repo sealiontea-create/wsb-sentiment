@@ -49,8 +49,47 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_options_ticker ON options_flow(ticker);
         CREATE INDEX IF NOT EXISTS idx_options_timestamp ON options_flow(timestamp);
+
+        CREATE TABLE IF NOT EXISTS earnings_cache (
+            ticker TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            fetched_at INTEGER NOT NULL
+        );
     """)
     conn.close()
+
+
+def get_earnings_cache(ticker):
+    """Return cached earnings JSON if < 24h old, else None."""
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT data, fetched_at FROM earnings_cache WHERE ticker = ?",
+            (ticker.upper(),)
+        ).fetchone()
+        if row is None:
+            return None
+        age = int(datetime.now(timezone.utc).timestamp()) - row["fetched_at"]
+        if age > 86400:  # 24 hours
+            return None
+        return row["data"]
+    finally:
+        conn.close()
+
+
+def set_earnings_cache(ticker, data_json):
+    """Upsert earnings cache row."""
+    conn = get_conn()
+    try:
+        conn.execute(
+            """INSERT INTO earnings_cache (ticker, data, fetched_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(ticker) DO UPDATE SET data=excluded.data, fetched_at=excluded.fetched_at""",
+            (ticker.upper(), data_json, int(datetime.now(timezone.utc).timestamp()))
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def insert_mention(ticker, post_id, sentiment_score, timestamp, source_type,

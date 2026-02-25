@@ -574,6 +574,296 @@ body {
   font-weight: 400;
 }
 
+/* ═══ TICKER TABLE — SELECTED ROW ═══ */
+.ticker-table tbody tr.ticker-selected {
+  background: var(--gold-dim);
+  border-left: 3px solid var(--gold);
+}
+
+.ticker-table tbody tr.ticker-selected:hover {
+  background: var(--gold-dim);
+}
+
+/* ═══ EARNINGS ORACLE ═══ */
+.earnings-oracle {
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  animation: eo-slide-in 0.25s ease-out;
+}
+
+@keyframes eo-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.eo-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eo-icon {
+  font-size: 1.5rem;
+}
+
+.eo-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.eo-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eo-close:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Loading / Error */
+.eo-loading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.eo-loading p {
+  color: var(--text-dim);
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.eo-error {
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.eo-error-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.eo-error p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.eo-error-detail {
+  color: var(--text-muted) !important;
+  font-size: 0.8rem !important;
+  margin-top: 4px;
+}
+
+/* Stat cards */
+.eo-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.eo-stat {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.eo-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.eo-stat.moon .eo-stat-value { color: var(--green); }
+.eo-stat.tank .eo-stat-value { color: var(--red); }
+.eo-stat.neutral .eo-stat-value { color: #fff; }
+.eo-stat.guh .eo-stat-value { color: var(--gold); }
+
+.eo-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* Commentary */
+.eo-commentary {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+/* Meta line */
+.eo-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.eo-cached {
+  opacity: 0.5;
+}
+
+/* Extremes line */
+.eo-extremes {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.eo-sep {
+  color: var(--border-light);
+}
+
+/* History bars */
+.eo-history {
+  margin-top: 8px;
+}
+
+.eo-history-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.eo-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.eo-bar-row:last-child {
+  border-bottom: none;
+}
+
+.eo-bar-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.eo-bar-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.eo-bar-track {
+  height: 16px;
+  background: var(--bg);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.eo-bar-fill {
+  position: absolute;
+  top: 2px;
+  height: 12px;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.eo-bar-fill.green-bg {
+  background: var(--green);
+  opacity: 0.7;
+}
+
+.eo-bar-fill.red-bg {
+  background: var(--red);
+  opacity: 0.7;
+}
+
+.eo-bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-light);
+}
+
+.eo-bar-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.eo-bar-class {
+  font-size: 0.85rem;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.eo-bar-eps {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  min-width: 72px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Disclaimer */
+.eo-disclaimer {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Shared color helpers used in EarningsOracle */
+.green { color: var(--green); }
+.red { color: var(--red); }
+.gold { color: var(--gold); }
+.dim { color: var(--text-muted); }
+
 /* ═══ FOOTER ═══ */
 .footer {
   text-align: center;
@@ -598,4 +888,10 @@ body {
   .ticker-table td, .ticker-table th { padding: 10px 10px; font-size: 0.8rem; }
   .sentiment-bar-bg { display: none; }
   .sentiment-cell { min-width: auto; }
+  .eo-stats { flex-wrap: wrap; }
+  .eo-stat { min-width: calc(50% - 6px); }
+  .eo-bar-eps { display: none; }
+  .eo-bar-date { min-width: 68px; font-size: 0.65rem; }
+  .eo-extremes { flex-wrap: wrap; font-size: 0.72rem; }
+  .earnings-oracle { padding: 16px; }
 }

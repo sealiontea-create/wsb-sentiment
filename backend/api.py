@@ -3,8 +3,10 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from db import init_db, get_top_tickers, get_ticker_detail, get_db_stats, get_options_flow, get_options_summary
+import json
+from db import init_db, get_top_tickers, get_ticker_detail, get_db_stats, get_options_flow, get_options_summary, get_earnings_cache, set_earnings_cache
 from run_scraper import run_pipeline
+from earnings import fetch_earnings_data
 
 app = FastAPI(title="WSB Sentiment Tracker")
 
@@ -48,6 +50,29 @@ def api_options(hours: int = Query(24, ge=1, le=168)):
     summary = get_options_summary(hours=hours)
     flow = get_options_flow(hours=hours)
     return {"summary": summary, "flow": flow, "hours": hours}
+
+
+@app.get("/api/earnings/{symbol}")
+def api_earnings(symbol: str):
+    """Get historical post-earnings stock performance — moon or tank predictor."""
+    symbol = symbol.upper()
+
+    # Check cache first
+    cached = get_earnings_cache(symbol)
+    if cached:
+        data = json.loads(cached)
+        data["cached"] = True
+        return data
+
+    # Fetch fresh data
+    data = fetch_earnings_data(symbol)
+    data["cached"] = False
+
+    # Cache successful results
+    if data.get("error") is None:
+        set_earnings_cache(symbol, json.dumps(data))
+
+    return data
 
 
 @app.post("/api/scrape")

@@ -8,7 +8,7 @@ CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "sec_tickers.json")
 # Common English words, WSB slang, and abbreviations that look like tickers
 BLOCKLIST = {
     # WSB slang
-    "DD", "YOLO", "HODL", "FOMO", "FD", "TLDR", "IMO", "IMHO", "WSB",
+    "AI", "DD", "YOLO", "HODL", "FOMO", "FD", "TLDR", "IMO", "IMHO", "WSB",
     "MOASS", "APE", "APES", "ROPE", "GUH", "BULL", "BEAR", "DIP", "DIPS",
     "ATH", "ATL", "OTM", "ITM", "DTM", "IV", "DTE", "FD", "LEAP", "LEAPS",
     "PT", "TP", "SL", "EOD", "EOW", "EOM", "EOY", "YTD", "QE", "GDP",

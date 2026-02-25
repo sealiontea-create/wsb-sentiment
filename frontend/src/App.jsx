@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import TimeframeSelector from './components/TimeframeSelector'
 import TickerTable from './components/TickerTable'
+import EarningsOracle from './components/EarningsOracle'
 import OptionsFlow from './components/OptionsFlow'
 
 const REFRESH_INTERVAL = 5 * 60 * 1000
@@ -12,6 +13,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [scraping, setScraping] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [selectedTicker, setSelectedTicker] = useState(null)
 
   const fetchTickers = useCallback(async () => {
     try {
@@ -124,9 +126,21 @@ export default function App() {
           </p>
         </div>
       ) : (
-        <div className="table-wrap">
-          <TickerTable tickers={tickers} />
-        </div>
+        <>
+          <div className="table-wrap">
+            <TickerTable
+              tickers={tickers}
+              selectedTicker={selectedTicker}
+              onTickerClick={(t) => setSelectedTicker(prev => prev === t ? null : t)}
+            />
+          </div>
+          {selectedTicker && (
+            <EarningsOracle
+              symbol={selectedTicker}
+              onClose={() => setSelectedTicker(null)}
+            />
+          )}
+        </>
       )}
 
       <OptionsFlow hours={hours} />

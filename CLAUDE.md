@@ -13,20 +13,22 @@ Free web app that scrapes r/wallstreetbets, identifies most-mentioned tickers, s
 ### Backend (`backend/`)
 | File | Purpose |
 |------|---------|
-| `api.py` | FastAPI app — `/api/tickers`, `/api/ticker/{symbol}`, `/api/status`, `/api/scrape` |
+| `api.py` | FastAPI app — `/api/tickers`, `/api/ticker/{symbol}`, `/api/status`, `/api/scrape`, `/api/earnings/{symbol}` |
 | `run_scraper.py` | Pipeline orchestrator: scrape → extract → score → store. `run_pipeline()` entry point. |
 | `scraper.py` | HTTP-based Reddit scraper (no PRAW/API key). Fetches hot + new + rising posts, comments with recursive reply extraction. Prioritizes daily/weekly megathreads. |
 | `tickers.py` | Ticker extraction via `$TICKER` + uppercase patterns, 150+ word blocklist, SEC EDGAR validation (cached) |
 | `sentiment.py` | VADER + ~50 WSB custom terms + 16 emoji sentiment scores (rockets, skulls, etc.) |
-| `db.py` | SQLite schema, query helpers, batch insert. Aggregation returns unique_authors + top_upvotes per ticker. |
+| `earnings.py` | Earnings Oracle — fetches historical earnings dates + prices via yfinance, calculates moon/tank probabilities, GUH score, streak, WSB commentary. 24h SQLite cache. |
+| `db.py` | SQLite schema (mentions, options_flow, earnings_cache), query helpers, batch insert. Aggregation returns unique_authors + top_upvotes per ticker. |
 | `data/` | SQLite DB (`wsb.db`) + SEC ticker cache (`sec_tickers.json`) — gitignored |
-| `requirements.txt` | vaderSentiment, fastapi, uvicorn (no PRAW, no python-dotenv) |
+| `requirements.txt` | vaderSentiment, fastapi, uvicorn, yfinance |
 
 ### Frontend (`frontend/`)
 | File | Purpose |
 |------|---------|
-| `src/App.jsx` | Dashboard — stats cards, timeframe state, auto-refresh 5min, scrape trigger, WSB humor |
-| `src/components/TickerTable.jsx` | Sortable table: ticker + vibe emoji, mentions, sentiment bar, apes (unique authors), top post upvotes |
+| `src/App.jsx` | Dashboard — stats cards, timeframe state, auto-refresh 5min, scrape trigger, selectedTicker state for Earnings Oracle |
+| `src/components/TickerTable.jsx` | Sortable table: ticker + vibe emoji, mentions, sentiment bar, apes, top post. Clickable rows open Earnings Oracle. |
+| `src/components/EarningsOracle.jsx` | Earnings Oracle panel — moon/tank stats, GUH score, history bar chart, EPS surprises, WSB commentary |
 | `src/components/TimeframeSelector.jsx` | 24h/48h/72h toggle buttons |
 | `src/index.css` | Dark theme (#0a0a0a bg), Inter + JetBrains Mono fonts, green/red/gold accents, sentiment bars, responsive |
 | `vite.config.js` | Dev proxy /api → localhost:8000 |
@@ -61,6 +63,7 @@ A full scrape takes ~2 minutes (200 hot + 200 new + 50 rising posts, comments fr
 - `GET /api/tickers?hours=24&limit=25` — Top tickers with mention_count, avg_sentiment, unique_authors, top_upvotes
 - `GET /api/ticker/{symbol}?hours=24` — Individual mentions for a ticker
 - `GET /api/status` — DB stats (total mentions, unique tickers, latest timestamp)
+- `GET /api/earnings/{symbol}` — Earnings Oracle: historical post-earnings moves, moon/tank %, GUH score, commentary (24h cached)
 - `POST /api/scrape` — Trigger scrape pipeline, returns stats
 
 ## Key Decisions
@@ -76,6 +79,8 @@ A full scrape takes ~2 minutes (200 hot + 200 new + 50 rising posts, comments fr
 - **"Apes" column** = unique authors mentioning a ticker (more honest than summing upvotes across unrelated posts)
 - **"Top Post" column** = highest-upvoted single post/comment mentioning that ticker
 - Vibe emojis on tickers: 🚀 hot bull, 💀 heavy bear, 🔥 strong bull, 📈 bull, 🩸 strong bear, 📉 bear, 😐 neutral
+- **Earnings Oracle** — yfinance for earnings dates + 5y price history, classifies moves as MOON/PUMP/FLAT/DIP/TANK, calculates GUH Score (0-10 casino metric), generates WSB commentary
+- **`AI` blocklisted** — C3.ai ticker matches every "AI" discussion, too many false positives. Removed from scraper entirely.
 
 ## Scraper Details
 - Fetches: 200 hot + 200 new + 50 rising posts (~200 unique after dedup)
@@ -89,6 +94,6 @@ A full scrape takes ~2 minutes (200 hot + 200 new + 50 rising posts, comments fr
 ## TODO
 - [ ] Deploy (Render/Railway backend, Cloudflare Pages frontend)
 - [ ] Add ads if it gets traffic
-- [ ] Historical charts per ticker
+- [x] Historical charts per ticker (Earnings Oracle — click any ticker row)
 - [ ] Meme/copypasta detection for noise filtering (downweight "Meme" flair posts)
 - [ ] Scheduled scraping (cron every 30min)
