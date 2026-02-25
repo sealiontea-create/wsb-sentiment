@@ -12,6 +12,39 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 
+# Tickers that don't have earnings — roast them WSB style
+_ROASTS = {
+    # Index ETFs
+    "SPY": "SPY doesn't have earnings you absolute walnut. It's 500 companies in a trenchcoat 🧥",
+    "QQQ": "QQQ is an ETF, not a company. It doesn't report earnings. Sir this is a Wendy's 🍔",
+    "IWM": "IWM is 2000 small caps duct-taped together. No earnings call, just vibes 🦧",
+    "DIA": "DIA tracks the Dow. 30 boomers in a basket. No earnings to see here 👴",
+    "VOO": "VOO is literally just SPY wearing a Vanguard sweater vest. No earnings 🧶",
+    "VTI": "VTI is the entire US stock market. ALL of it. You want earnings for... everything? 🌎",
+    # Leveraged / inverse
+    "TQQQ": "TQQQ is a 3x leveraged ETF. It doesn't have earnings, it has a gambling addiction 🎰",
+    "SQQQ": "SQQQ is a bear ETF. No earnings. It just sits there and decays like your portfolio 💀",
+    "UVXY": "UVXY tracks fear itself. Fear doesn't file 10-Qs 👻",
+    "SPXL": "SPXL is leveraged SPY. No earnings. Just amplified regret 📉📉📉",
+    "SOXL": "SOXL is a leveraged semiconductor ETF. Semiconductors have earnings. SOXL does not. Stay in school 📚",
+    "SOXS": "SOXS is an inverse semiconductor ETF. It exists purely to destroy wealth. No earnings 🔥",
+    # Commodities
+    "GLD": "GLD is literally gold bars in a vault. Gold doesn't do earnings calls 🥇",
+    "SLV": "SLV is silver. A shiny rock. Rocks don't have quarterly reports 🪨",
+    "USO": "USO tracks oil. Oil comes from the ground, not from a CEO on CNBC 🛢️",
+    "AGQ": "AGQ is 2x leveraged silver. Double the rock, still no earnings 🪨🪨",
+    # Crypto-adjacent
+    "BTC": "BTC is Bitcoin. Satoshi doesn't do earnings calls. Probably dead anyway 💀",
+    "BITO": "BITO is a Bitcoin futures ETF. Crypto doesn't have earnings you degenerate 🤡",
+    "MARA": None,  # MARA actually has earnings, don't roast
+    # VIX products
+    "VIX": "VIX is a fear index. You can't even buy it directly. What are you doing here 🤦",
+    "VXX": "VXX tracks VIX futures. No earnings. Just existential dread in ETN form 😰",
+    # Bonds
+    "TLT": "TLT is a bond ETF. Bonds don't have earnings. They barely have a pulse 💤",
+    "HYG": "HYG is junk bonds in ETF form. No earnings. Just prayers 🙏",
+}
+
 # Pre-fetched earnings dates cache (built locally, committed to repo)
 _PREFETCH_PATH = os.path.join(os.path.dirname(__file__), "data", "earnings_prefetch.json")
 _prefetch_cache = None
@@ -135,6 +168,11 @@ def fetch_earnings_data(symbol):
     Returns a dict with all metrics, history events, and commentary.
     On failure returns {"error": "message"}.
     """
+    # Roast ETFs/indexes/crypto that don't have earnings
+    roast = _ROASTS.get(symbol.upper())
+    if roast is not None:
+        return {"error": roast}
+
     # Check prefetch for full pre-computed result first
     prefetch = _load_prefetch()
     if symbol.upper() in prefetch:
