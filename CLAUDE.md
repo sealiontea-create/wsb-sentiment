@@ -27,11 +27,12 @@ Free web app that scrapes r/wallstreetbets, identifies most-mentioned tickers, s
 ### Frontend (`frontend/`)
 | File | Purpose |
 |------|---------|
-| `src/App.jsx` | Dashboard — stats cards, timeframe state, auto-refresh 5min, scrape trigger, selectedTicker state for Earnings Oracle |
+| `src/App.jsx` | Dashboard — stats cards, timeframe state, auto-refresh 5min, scrape trigger, selectedTicker state for Earnings Oracle, 30 rotating WSB wisdom quotes (8s cycle) |
+| `src/components/TickerTape.jsx` | Scrolling ticker tape banner — top tickers with sentiment scores, vibe emojis, mention counts. Infinite CSS scroll animation, hover to pause. |
 | `src/components/TickerTable.jsx` | Sortable table: ticker + vibe emoji, mentions, sentiment bar, apes, top post. Clickable rows open Earnings Oracle. |
 | `src/components/EarningsOracle.jsx` | Earnings Oracle panel — moon/tank stats, GUH score, history bar chart, EPS surprises, WSB commentary |
 | `src/components/TimeframeSelector.jsx` | 24h/48h/72h toggle buttons |
-| `src/index.css` | Dark theme (#0a0a0a bg), Inter + JetBrains Mono fonts, green/red/gold accents, sentiment bars, responsive |
+| `src/index.css` | Dark theme (#0a0a0a bg), Inter + JetBrains Mono fonts, green/red/gold accents, sentiment bars, ticker tape animation, wisdom fade animation, responsive |
 | `vite.config.js` | Dev proxy /api → localhost:8000 |
 | `index.html` | Entry point — apple-touch-icon (gorilla), PWA meta tags |
 | `public/ape-icon-180.png` | iOS homescreen icon — gorilla emoji on dark bg with gold border |
@@ -85,6 +86,9 @@ A full scrape takes ~2 minutes (200 hot + 200 new + 50 rising posts, comments fr
 - **Earnings Oracle** — classifies post-earnings moves as MOON/PUMP/FLAT/DIP/TANK, calculates GUH Score (0-10 casino metric), generates WSB commentary
 - **Earnings prefetch strategy** — Yahoo blocks `get_earnings_dates()` HTML scrape from cloud IPs (Render). Solution: pre-compute full results locally (dates + prices + metrics), commit `earnings_prefetch.json` to repo. On Render, cached tickers serve instantly with zero Yahoo calls. Uncached tickers fall back to `quarterly_income_stmt` API (~4 quarters). To refresh: `cd backend && python -c "from earnings import prefetch_earnings; prefetch_earnings(['AAPL','TSLA'])"`
 - **`AI` blocklisted** — C3.ai ticker matches every "AI" discussion, too many false positives. Removed from scraper entirely.
+- **WSB roasts for ETFs** — SPY, QQQ, TQQQ, GLD, VIX, etc. get custom WSB-themed roast messages instead of "no data" errors in Earnings Oracle (24 tickers covered)
+- **Ticker tape** — infinite CSS scroll animation with doubled items for seamless loop, edge fade gradients, hover-to-pause
+- **WSB wisdom footer** — 30 rotating quotes cycle every 8s with CSS fade-in/out animation (key-based React re-render triggers animation restart)
 
 ## Scraper Details
 - Fetches: 200 hot + 200 new + 50 rising posts (~200 unique after dedup)
